@@ -71,49 +71,23 @@ async def delete_session(session_id: str):
 # Root endpoint - serve index.html
 @app.get("/")
 async def root():
-    """Serve the frontend HTML."""
-    # Try multiple possible paths for Vercel
-    possible_paths = [
-        project_root / "public" / "index.html",
-        Path("/vercel/path0/public/index.html"),
-        Path(os.getcwd()) / "public" / "index.html",
-    ]
-    
-    for public_path in possible_paths:
-        if public_path.exists():
-            return FileResponse(str(public_path))
-    
-    # Debug info - list directory contents
-    debug_info = {
-        "message": "Mutual Fund RAG Chatbot API",
-        "project_root": str(project_root),
-        "cwd": os.getcwd(),
-        "checked_paths": [str(p) for p in possible_paths],
-        "ls_cwd": os.listdir(os.getcwd()) if os.path.exists(os.getcwd()) else "N/A",
-        "ls_project_root": os.listdir(project_root) if project_root.exists() else "N/A",
-    }
-    return debug_info
+    """Serve the frontend HTML from phase_5 folder."""
+    index_path = project_root / "phase_5" / "index.html"
+    if index_path.exists():
+        return FileResponse(str(index_path))
+    return {"message": "Mutual Fund RAG Chatbot API - UI not found"}
 
-# Serve static files
+# Serve static files from phase_5
 @app.get("/{file_path:path}")
 async def serve_static(file_path: str):
-    """Serve static files from public folder."""
-    # Try multiple possible paths
-    possible_roots = [
-        project_root / "public",
-        Path("/vercel/path0/public"),
-        Path(os.getcwd()) / "public",
-    ]
-    
-    for root in possible_roots:
-        file_full_path = root / file_path
-        if file_full_path.exists() and file_full_path.is_file():
-            return FileResponse(str(file_full_path))
+    """Serve static files from phase_5 folder."""
+    file_full_path = project_root / "phase_5" / file_path
+    if file_full_path.exists() and file_full_path.is_file():
+        return FileResponse(str(file_full_path))
     
     # Try to serve index.html for SPA routing
-    for root in possible_roots:
-        index_path = root / "index.html"
-        if index_path.exists():
-            return FileResponse(str(index_path))
+    index_path = project_root / "phase_5" / "index.html"
+    if index_path.exists():
+        return FileResponse(str(index_path))
     
     raise HTTPException(status_code=404, detail=f"Not Found: {file_path}")
