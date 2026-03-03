@@ -72,20 +72,46 @@ async def delete_session(session_id: str):
 @app.get("/")
 async def root():
     """Serve the frontend HTML."""
-    public_path = project_root / "public" / "index.html"
-    if public_path.exists():
-        return FileResponse(str(public_path))
-    return {"message": "Mutual Fund RAG Chatbot API"}
+    # Try multiple possible paths for Vercel
+    possible_paths = [
+        project_root / "public" / "index.html",
+        Path("/vercel/path0/public/index.html"),
+        Path(os.getcwd()) / "public" / "index.html",
+    ]
+    
+    for public_path in possible_paths:
+        if public_path.exists():
+            return FileResponse(str(public_path))
+    
+    # Debug info
+    debug_info = {
+        "message": "Mutual Fund RAG Chatbot API",
+        "project_root": str(project_root),
+        "cwd": os.getcwd(),
+        "checked_paths": [str(p) for p in possible_paths],
+    }
+    return debug_info
 
 # Serve static files
 @app.get("/{file_path:path}")
 async def serve_static(file_path: str):
     """Serve static files from public folder."""
-    file_full_path = project_root / "public" / file_path
-    if file_full_path.exists() and file_full_path.is_file():
-        return FileResponse(str(file_full_path))
-    # If file not found, return index.html for SPA routing
-    index_path = project_root / "public" / "index.html"
-    if index_path.exists():
-        return FileResponse(str(index_path))
-    raise HTTPException(status_code=404, detail="Not Found")
+    # Try multiple possible paths
+    possible_roots = [
+        project_root / "public",
+        Path("/vercel/path0/public"),
+        Path(os.getcwd()) / "public",
+    ]
+    
+    for root in possible_roots:
+        file_full_path = root / file_path
+        if file_full_path.exists() and file_full_path.is_file():
+            return FileResponse(str(file_full_path))
+    
+    # Try to serve index.html for SPA routing
+    for root in possible_roots:
+        index_path = root / "index.html"
+        if index_path.exists():
+            return FileResponse(str(index_path))
+    
+    raise HTTPException(status_code=404, detail=f"Not Found: {file_path}")
