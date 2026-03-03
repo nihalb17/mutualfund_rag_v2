@@ -83,12 +83,14 @@ async def root():
         if public_path.exists():
             return FileResponse(str(public_path))
     
-    # Debug info
+    # Debug info - list directory contents
     debug_info = {
         "message": "Mutual Fund RAG Chatbot API",
         "project_root": str(project_root),
         "cwd": os.getcwd(),
         "checked_paths": [str(p) for p in possible_paths],
+        "ls_cwd": os.listdir(os.getcwd()) if os.path.exists(os.getcwd()) else "N/A",
+        "ls_project_root": os.listdir(project_root) if project_root.exists() else "N/A",
     }
     return debug_info
 

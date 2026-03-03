@@ -14,9 +14,5 @@
   ],
   "env": {
     "PYTHONPATH": "."
-  },
-  "files": [
-    "public/**",
-    "data/**"
-  ]
+  }
 }
