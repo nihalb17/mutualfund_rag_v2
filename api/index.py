@@ -19,6 +19,12 @@ from phase_2.rag_pipeline import query_rag, query_rag_stream
 from phase_4.schemas import ChatRequest, ChatResponse, SessionResponse, HealthResponse
 from fastapi.responses import FileResponse, StreamingResponse
 
+# Initialize database on startup (for Vercel)
+IS_VERCEL = os.environ.get("VERCEL", "0") == "1"
+if IS_VERCEL:
+    from api.init_db import init_database
+    init_database()
+
 app = FastAPI(
     title="Mutual Fund RAG Chatbot API (Stateless)",
     description="Backend for querying Axis Mutual Fund schemes via RAG (No history support)",
