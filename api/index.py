@@ -62,7 +62,24 @@ async def delete_session(session_id: str):
     """No-op (stateless)."""
     return {"message": "Stateless session - nothing to clear."}
 
-# Static Files - Serve from public folder for Vercel
-PUBLIC_PATH = project_root / "public"
-if PUBLIC_PATH.exists():
-    app.mount("/", StaticFiles(directory=str(PUBLIC_PATH), html=True), name="frontend")
+# Root endpoint - serve index.html
+@app.get("/")
+async def root():
+    """Serve the frontend HTML."""
+    public_path = project_root / "public" / "index.html"
+    if public_path.exists():
+        return FileResponse(str(public_path))
+    return {"message": "Mutual Fund RAG Chatbot API"}
+
+# Serve static files
+@app.get("/{file_path:path}")
+async def serve_static(file_path: str):
+    """Serve static files from public folder."""
+    file_full_path = project_root / "public" / file_path
+    if file_full_path.exists() and file_full_path.is_file():
+        return FileResponse(str(file_full_path))
+    # If file not found, return index.html for SPA routing
+    index_path = project_root / "public" / "index.html"
+    if index_path.exists():
+        return FileResponse(str(index_path))
+    raise HTTPException(status_code=404, detail="Not Found")
