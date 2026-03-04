@@ -19,9 +19,11 @@ CHUNKS_FILE = project_root / "data" / "chunks" / "all_chunks.json"
 
 def init_database():
     """Initialize ChromaDB with pre-built chunks."""
+    import traceback
+    
     if not CHUNKS_FILE.exists():
         print(f"[InitDB] Chunks file not found: {CHUNKS_FILE}")
-        return False
+        return False, "Chunks file not found"
     
     try:
         print("[InitDB] Loading chunks from JSON...")
@@ -35,17 +37,23 @@ def init_database():
         texts = [c["text"] for c in chunks]
         embeddings = embed_texts(texts)
         
+        if embeddings is None or len(embeddings) == 0:
+            return False, "Failed to generate embeddings"
+        
+        print(f"[InitDB] Generated {len(embeddings)} embeddings")
+        
         # Reset and populate collection
         print("[InitDB] Storing in ChromaDB...")
         reset_collection()
         count = upsert_chunks(chunks, embeddings)
         
         print(f"[InitDB] Successfully initialized with {count} documents")
-        return True
+        return True, f"Initialized with {count} documents"
         
     except Exception as e:
-        print(f"[InitDB] Error initializing database: {e}")
-        return False
+        error_msg = f"{e}\n{traceback.format_exc()}"
+        print(f"[InitDB] Error initializing database: {error_msg}")
+        return False, error_msg
 
 if __name__ == "__main__":
     init_database()

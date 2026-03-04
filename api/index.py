@@ -21,15 +21,18 @@ from fastapi.responses import FileResponse, StreamingResponse
 
 # Initialize database on startup (for Vercel)
 IS_VERCEL = os.environ.get("VERCEL", "0") == "1"
+startup_error = None
 if IS_VERCEL:
     try:
         from api.init_db import init_database
-        result = init_database()
-        print(f"[Startup] Database initialization: {'SUCCESS' if result else 'FAILED'}")
+        success, msg = init_database()
+        print(f"[Startup] Database initialization: {'SUCCESS' if success else 'FAILED'} - {msg}")
+        if not success:
+            startup_error = msg
     except Exception as e:
-        print(f"[Startup] Database initialization error: {e}")
         import traceback
-        traceback.print_exc()
+        startup_error = f"{e}\n{traceback.format_exc()}"
+        print(f"[Startup] Database initialization error: {startup_error}")
 
 app = FastAPI(
     title="Mutual Fund RAG Chatbot API (Stateless)",
@@ -67,6 +70,7 @@ async def health_check():
 @app.get("/init-db")
 async def init_db_endpoint():
     """Manually trigger database initialization."""
+    global startup_error
     try:
         from api.init_db import init_database, CHUNKS_FILE
         import os
@@ -76,12 +80,14 @@ async def init_db_endpoint():
             "chunks_file_path": str(CHUNKS_FILE),
             "cwd": os.getcwd(),
             "ls_data": os.listdir("data") if os.path.exists("data") else "N/A",
+            "startup_error": startup_error,
         }
         
         if CHUNKS_FILE.exists():
-            success = init_database()
+            success, msg = init_database()
             from phase_1.vector_store import get_document_count
             result["init_success"] = success
+            result["init_message"] = msg
             result["documents_after"] = get_document_count()
         
         return result
