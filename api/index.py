@@ -85,10 +85,16 @@ async def init_db_endpoint():
         
         if CHUNKS_FILE.exists():
             success, msg = init_database()
-            from phase_1.vector_store import get_document_count
             result["init_success"] = success
             result["init_message"] = msg
-            result["documents_after"] = get_document_count()
+            
+            # Try to get document count, but handle if collection doesn't exist
+            try:
+                from phase_1.vector_store import get_document_count
+                result["documents_after"] = get_document_count()
+            except Exception as count_error:
+                result["documents_after"] = 0
+                result["count_error"] = str(count_error)
         
         return result
     except Exception as e:
