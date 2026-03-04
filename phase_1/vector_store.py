@@ -141,16 +141,17 @@ def get_document_count() -> int:
 
 def reset_collection():
     """Deletes and recreates the collection (useful for re-ingestion)."""
+    global _collection_instance
     client = get_client()
     try:
         client.delete_collection(COLLECTION_NAME)
         print(f"[VectorStore] Deleted existing collection '{COLLECTION_NAME}'.")
     except Exception:
         pass
-    collection = client.create_collection(
-        name=COLLECTION_NAME,
-        metadata={"hnsw:space": "cosine"},
-    )
+    # Reset the cached instance
+    _collection_instance = None
+    # Create new collection via get_collection to cache it properly
+    collection = get_collection(client)
     print(f"[VectorStore] Created fresh collection '{COLLECTION_NAME}'.")
     return collection
 
