@@ -22,8 +22,14 @@ from fastapi.responses import FileResponse, StreamingResponse
 # Initialize database on startup (for Vercel)
 IS_VERCEL = os.environ.get("VERCEL", "0") == "1"
 if IS_VERCEL:
-    from api.init_db import init_database
-    init_database()
+    try:
+        from api.init_db import init_database
+        result = init_database()
+        print(f"[Startup] Database initialization: {'SUCCESS' if result else 'FAILED'}")
+    except Exception as e:
+        print(f"[Startup] Database initialization error: {e}")
+        import traceback
+        traceback.print_exc()
 
 app = FastAPI(
     title="Mutual Fund RAG Chatbot API (Stateless)",
@@ -40,10 +46,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/health", response_model=HealthResponse)
+@app.get("/health")
 async def health_check():
     """Returns the health status of the API."""
-    return {"status": "ok"}
+    try:
+        from phase_1.vector_store import get_document_count
+        count = get_document_count()
+        return {
+            "status": "ok",
+            "documents": count,
+            "vercel": IS_VERCEL
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "vercel": IS_VERCEL
+        }
 
 @app.post("/session/new", response_model=SessionResponse)
 async def create_session():
