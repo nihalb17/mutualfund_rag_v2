@@ -64,6 +64,34 @@ async def health_check():
             "vercel": IS_VERCEL
         }
 
+@app.get("/init-db")
+async def init_db_endpoint():
+    """Manually trigger database initialization."""
+    try:
+        from api.init_db import init_database, CHUNKS_FILE
+        import os
+        
+        result = {
+            "chunks_file_exists": CHUNKS_FILE.exists(),
+            "chunks_file_path": str(CHUNKS_FILE),
+            "cwd": os.getcwd(),
+            "ls_data": os.listdir("data") if os.path.exists("data") else "N/A",
+        }
+        
+        if CHUNKS_FILE.exists():
+            success = init_database()
+            from phase_1.vector_store import get_document_count
+            result["init_success"] = success
+            result["documents_after"] = get_document_count()
+        
+        return result
+    except Exception as e:
+        import traceback
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 @app.post("/session/new", response_model=SessionResponse)
 async def create_session():
     """Returns a dummy session ID (stateless)."""
