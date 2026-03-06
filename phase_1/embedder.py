@@ -4,6 +4,7 @@ Wraps the Gemini text-embedding-004 model for generating embeddings.
 """
 
 import os
+import time
 from pathlib import Path
 
 from google import genai
@@ -14,6 +15,10 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "models/gemini-embedding-001")
+
+# Rate limiting: 100 requests per minute max on free tier
+# Using 0.7s delay = ~85 requests per minute (safe margin)
+EMBEDDING_DELAY_SECONDS = 0.7
 
 # Initialise Gemini
 _api_key = os.getenv("GEMINI_API_KEY")
@@ -38,15 +43,30 @@ def embed_text(text: str) -> list[float]:
 
 def embed_texts(texts: list[str], task_type: str = "RETRIEVAL_DOCUMENT") -> list[list[float]]:
     """
-    Embeds a list of strings using batch embedding.
+    Embeds a list of strings using batch embedding with rate limiting
+    to stay under Gemini free tier limits (100 requests/min).
+    Processes texts one at a time with delays to avoid rate limits.
     """
-    print(f"  [Embedder] Embedding {len(texts)} chunks (task={task_type})...")
-    result = client.models.embed_content(
-        model=EMBEDDING_MODEL,
-        contents=texts,
-        config=types.EmbedContentConfig(task_type=task_type),
-    )
-    embeddings = [embedding.values for embedding in result.embeddings]
+    print(f"  [Embedder] Embedding {len(texts)} chunks with rate limiting (task={task_type})...")
+    embeddings = []
+
+    for i, text in enumerate(texts):
+        try:
+            result = client.models.embed_content(
+                model=EMBEDDING_MODEL,
+                contents=text,
+                config=types.EmbedContentConfig(task_type=task_type),
+            )
+            embeddings.append(result.embeddings[0].values)
+
+            # Rate limiting: delay between requests to stay under 100/min
+            if i < len(texts) - 1:  # Don't delay after the last request
+                time.sleep(EMBEDDING_DELAY_SECONDS)
+
+        except Exception as e:
+            print(f"  [Embedder] Error embedding chunk {i}: {e}")
+            raise
+
     print(f"  [Embedder] Done. {len(embeddings)} embeddings generated.")
     return embeddings
 
