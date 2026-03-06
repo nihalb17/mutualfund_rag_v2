@@ -33,8 +33,11 @@ def build_prompt(query: str, retrieved_chunks: list[dict]) -> str:
     """
     Combines chunks into the final prompt for Gemini.
     """
+    print(f"[PromptBuilder] Building prompt with {len(retrieved_chunks)} chunks")
+    
     if not retrieved_chunks:
-        context_text = "No relevant context found in the database."
+        context_text = "No relevant context found in the database for this query."
+        print(f"[PromptBuilder] WARNING: No chunks retrieved for query: '{query}'")
     else:
         # Format chunks into a readable context block
         context_parts = []

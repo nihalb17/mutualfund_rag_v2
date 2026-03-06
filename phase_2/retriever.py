@@ -19,14 +19,28 @@ def retrieve_context(query: str, top_k: int = TOP_K) -> list[dict]:
     Embeds the query and retrieves the most relevant chunks from ChromaDB.
     Returns a list of chunk dictionaries (text + metadata).
     """
+    print(f"[Retriever] Processing query: '{query}'")
+    
     # 1. Generate embedding for the query
     # embed_texts expects a list, returns a list of vectors
+    print(f"[Retriever] Generating query embedding...")
     query_embeddings = embed_texts([query], task_type="RETRIEVAL_QUERY")
+    
+    if not query_embeddings or len(query_embeddings) == 0:
+        print(f"[Retriever] ERROR: No embedding generated for query")
+        return []
+    
     query_vector = query_embeddings[0]
+    print(f"[Retriever] Query embedding generated, vector length: {len(query_vector)}")
 
     # 2. Search ChromaDB
     # similarity_search already returns a list[dict] with 'text', 'metadata', 'distance'
+    print(f"[Retriever] Searching ChromaDB with top_k={top_k}...")
     retrieved_chunks = similarity_search(query_vector, top_k=top_k)
+    
+    print(f"[Retriever] Retrieved {len(retrieved_chunks)} chunks")
+    for i, chunk in enumerate(retrieved_chunks):
+        print(f"  [{i+1}] {chunk['metadata'].get('scheme_name', 'N/A')} - distance: {chunk.get('distance', 'N/A')}")
     
     return retrieved_chunks
 
